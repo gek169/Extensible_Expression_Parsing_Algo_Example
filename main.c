@@ -58,7 +58,7 @@ void divide()
 {
 	unsigned int a=0, b=0, lc = 0;
 	if(stp < 2){
-		printf("\r\n Error, not enough ops to multiply.");
+		printf("\r\n Error, not enough ops to divide.");
 		exit(1);
 	}
 	b = vstack[--stp];
@@ -69,9 +69,9 @@ void divide()
 		lc = 0;
 	vstack[stp++] = lc;
 	if(b != 0)
-		printf("apop;bpop;mul;apush; [%u * %u = %u]\r\n", a,b,lc);
+		printf("apop;bpop;mul;apush; [%u / %u = %u]\r\n", a,b,lc);
 	else
-		printf("apop;bpop;mul;apush; [%u * %u = %u, DIV_BY_ZERO]\r\n", a,b,lc);
+		printf("apop;bpop;mul;apush; [%u / %u = %u, DIV_BY_ZERO]\r\n", a,b,lc);
 }
 
 void addition()
@@ -85,7 +85,7 @@ void addition()
 	a = vstack[--stp];
 	lc = a + b;
 	vstack[stp++] = lc;
-	printf("apop;bpop;add;apush; [%u * %u = %u]\r\n", a,b,lc);
+	printf("apop;bpop;add;apush; [%u + %u = %u]\r\n", a,b,lc);
 }
 
 void subtraction()
