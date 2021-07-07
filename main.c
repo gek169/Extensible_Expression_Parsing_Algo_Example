@@ -34,8 +34,8 @@ static char* read_until_terminator_alloced_modified(FILE* f){
 	return buf;
 }
 
-
-unsigned int vstack[1024];
+unsigned int M[0x10000] = {0};
+unsigned int vstack[1024] = {0};
 unsigned long stp = 0;
 char c = 0;
 
@@ -52,6 +52,32 @@ void multiply()
 	lc = a * b;
 	vstack[stp++] = lc;
 	printf("apop;bpop;mul;apush; [%u * %u = %u]\r\n", a,b,lc);
+}
+
+void assign()
+{
+	unsigned int a=0, b=0;
+	if(stp < 2){
+		printf("\r\n Error, not enough ops to assign.");
+		exit(1);
+	}
+	b = vstack[--stp];
+	a = vstack[--stp];
+	M[a&0xffFF] = b;
+	vstack[stp++] = b;
+	printf("cpop;bpop;ildb;cpush; [M[%u] = %u]\r\n", a&0xffFF,b);
+}
+
+void deref(){
+	unsigned int a = 0, b = 0;
+	if(stp < 1){
+		printf("\r\n Error, not enough ops to assign.");
+		exit(1);
+	}
+	a = vstack[--stp];
+	b = M[a&0xffFF];
+	vstack[stp++] = b;
+	printf("cpop;ilda;apush; [M[%u], %u]\r\n", a&0xffFF,b);
 }
 
 void divide()
@@ -106,7 +132,7 @@ char* parse_expr(char* in, char* ign_list){
 	printf("call to parse_expr on %s\r\n", in);
 	while(1){
 		unsigned long i;
-		if(in[0] == '\0'){
+		if(in[0] == '\0' || in[0] == ';'){
 			printf("<nothing>\r\n");
 			return in;
 		}
@@ -179,6 +205,21 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			divide();
+		}else if(in[0] == '='){
+			unsigned long stp_saved = stp;
+			if(c == 0){
+				printf("bad prefixing number for binop =");
+				exit(1);
+			}
+			c = 0;
+			in++;
+			in = parse_expr(in, "");
+			if(stp != stp_saved +1){
+				printf("bad expression, stack pointer is incorrect for binop =");
+				printf("\r\nin: %s", in);
+				exit(1);
+			}
+			assign();
 		}else if(isdigit(in[0])){
 			{
 				c = in[0];
@@ -211,6 +252,38 @@ char* parse_expr(char* in, char* ign_list){
 			parse_expr(expr, "");
 			free(expr);
 			in += i+1;
+		} else if(in[0] == '[' /*]*/) {
+			char* expr = NULL;
+			unsigned long i = 1;
+			unsigned long lvl = 1;
+			unsigned long stp_stored = stp;
+			in++; /*Skip over the starting parentheses*/
+			printf("Saw bracket...\r\n");
+			if(c){
+				printf("<ERROR> cannot follow digit with bracket.\r\n");
+				exit(1);
+			}
+			for(;i<strlen(in);i++){
+				if(in[i] == '['/*]*/) lvl++;
+				if(in[i] == /*[*/']') {
+					lvl--;
+					if(lvl==0) break;
+				}
+			}
+			if(lvl){
+				printf("<ERROR> bad brackets. Expression is %s\r\n", in);
+				exit(1);
+			}
+			expr = str_null_terminated_alloc(in, i);
+			printf("Parsed bracketed expression is %s\r\n", expr);
+			parse_expr(expr, "");
+			if(stp_stored + 1 != stp){
+				printf("\r\nCannot dereference! bad value.\r\n");
+				exit(1);
+			}
+			deref();
+			free(expr);
+			in += i+1;
 		} else {
 			printf("\r\n<ERROR> unrecognized token %c\r\n", in[0]);
 			exit(1);
@@ -237,6 +310,13 @@ int main(){
 		line = str_repl_allocf(line, "\r", "");
 	}
 	printf("Whitespace Removed:\r\n%s\r\n", line);
-	parse_expr(line,"");
-	printf("stp = %lu", stp);
+	do{
+		long loc_semi = strfind(line, ";");
+		parse_expr(line,"");
+		printf("stp after expr = %lu\r\n", stp);
+		stp = 0;
+		if(loc_semi != -1)
+			line += loc_semi+1;
+		else break;
+	} while(1);
 }
