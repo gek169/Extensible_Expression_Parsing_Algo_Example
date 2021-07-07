@@ -180,18 +180,10 @@ char* parse_expr(char* in, char* ign_list){
 			}
 			divide();
 		}else if(isdigit(in[0])){
-			if(c){
-				vstack[stp-1] *= 10;
-				vstack[stp-1] += in[0]-0x30;
+			{
 				c = in[0];
+				vstack[stp++] = strtoul(in, &in, 0);
 				printf("push %u;\r\n", vstack[stp-1]);
-				in++;
-			} else {
-				if(!isdigit(in[1]))
-					printf("push %u;\r\n", in[0]-0x30);
-				c = in[0];
-				vstack[stp++] = c-0x30;
-				in++;
 			}
 		} else if(in[0] == '(' /*)*/) {
 			char* expr = NULL;
