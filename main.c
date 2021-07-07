@@ -103,18 +103,19 @@ void subtraction()
 }
 
 char* parse_expr(char* in, char* ign_list){
+	printf("call to parse_expr on %s\r\n", in);
 	while(1){
 		unsigned long i;
 		if(in[0] == '\0'){
-			/*printf("<nothing>\r\n");*/
+			printf("<nothing>\r\n");
 			return in;
 		}
 		for(i=0; i < strlen(ign_list); i++)
-			if(in[i] == ign_list[i])
-			{
-				/*printf("<reached %c in the ign_list>\r\n", ign_list[i]);*/
-				return in;
-			}
+					if(in[0] == ign_list[i])
+					{
+						printf("<reached %c in the ign_list %s>\r\n", ign_list[i], ign_list);
+						return in;
+					}
 		if(in[0] == /*(*/')'){
 			printf("<ERROR> bad parentheses, saw extraneous ending parenthese");
 			exit(1);
@@ -129,6 +130,7 @@ char* parse_expr(char* in, char* ign_list){
 			in = parse_expr(in, "+-");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop +");
+				printf("\r\nin: %s", in);
 				exit(1);
 			}
 			addition();
@@ -143,6 +145,7 @@ char* parse_expr(char* in, char* ign_list){
 			in = parse_expr(in, "+-");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop -");
+				printf("\r\nin: %s", in);
 				exit(1);
 			}
 			subtraction();
@@ -156,7 +159,8 @@ char* parse_expr(char* in, char* ign_list){
 			in++;
 			in = parse_expr(in, "+-*/");
 			if(stp != stp_saved +1){
-				printf("bad expression, stack pointer is incorrect for binop +");
+				printf("bad expression, stack pointer is incorrect for binop *");
+				printf("\r\nin: %s", in);
 				exit(1);
 			}
 			multiply();
@@ -171,6 +175,7 @@ char* parse_expr(char* in, char* ign_list){
 			in = parse_expr(in, "+-*/");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop /");
+				printf("\r\nin: %s", in);
 				exit(1);
 			}
 			divide();
@@ -189,7 +194,7 @@ char* parse_expr(char* in, char* ign_list){
 			unsigned long i = 1;
 			unsigned long lvl = 1;
 			in++; /*Skip over the starting parentheses*/
-			/*printf("Saw opening parentheses...\r\n");*/
+			printf("Saw opening parentheses...\r\n");
 			if(c){
 				printf("<ERROR> cannot follow digit with paren.\r\n");
 				exit(1);
@@ -206,7 +211,7 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			expr = str_null_terminated_alloc(in, i);
-			/*printf("Parsed Parenthesized expression is %s\r\n", expr);*/
+			printf("Parsed Parenthesized expression is %s\r\n", expr);
 			parse_expr(expr, "");
 			free(expr);
 			in += i+1;
@@ -214,7 +219,7 @@ char* parse_expr(char* in, char* ign_list){
 			printf("\r\n<ERROR> unrecognized token %c\r\n", in[0]);
 			exit(1);
 		}
-	}
+	} /*Eof while.*/
 }
 
 
