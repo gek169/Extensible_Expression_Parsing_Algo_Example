@@ -47,11 +47,31 @@ void multiply()
 		printf("\r\n Error, not enough ops to multiply.");
 		exit(1);
 	}
-	a = vstack[--stp];
 	b = vstack[--stp];
+	a = vstack[--stp];
 	lc = a * b;
 	vstack[stp++] = lc;
-	printf("Multiplication occurred between %u and %u, and the result is %u\r\n", a,b,lc);
+	printf("apop;bpop;mul;apush; [%u * %u = %u]\r\n", a,b,lc);
+}
+
+void divide()
+{
+	unsigned int a=0, b=0, lc = 0;
+	if(stp < 2){
+		printf("\r\n Error, not enough ops to multiply.");
+		exit(1);
+	}
+	b = vstack[--stp];
+	a = vstack[--stp];
+	if(b != 0)
+		lc = a / b;
+	else
+		lc = 0;
+	vstack[stp++] = lc;
+	if(b != 0)
+		printf("apop;bpop;mul;apush; [%u * %u = %u]\r\n", a,b,lc);
+	else
+		printf("apop;bpop;mul;apush; [%u * %u = %u, DIV_BY_ZERO]\r\n", a,b,lc);
 }
 
 void addition()
@@ -61,24 +81,38 @@ void addition()
 		printf("\r\n Error, not enough ops to add.");
 		exit(1);
 	}
-	a = vstack[--stp];
 	b = vstack[--stp];
+	a = vstack[--stp];
 	lc = a + b;
 	vstack[stp++] = lc;
-	printf("Addition occurred between %u and %u, and the result is %u\r\n", a,b,lc);
+	printf("apop;bpop;add;apush; [%u * %u = %u]\r\n", a,b,lc);
+}
+
+void subtraction()
+{
+	unsigned int a=0, b=0, lc = 0;
+	if(stp < 2){
+		printf("\r\n Error, not enough ops to sub.");
+		exit(1);
+	}
+	b = vstack[--stp];
+	a = vstack[--stp];
+	lc = a - b;
+	vstack[stp++] = lc;
+	printf("apop;bpop;sub;apush; [%u - %u = %u]\r\n", a,b,lc);
 }
 
 char* parse_expr(char* in, char* ign_list){
 	while(1){
 		unsigned long i;
 		if(in[0] == '\0'){
-			printf("<nothing>\r\n");
+			/*printf("<nothing>\r\n");*/
 			return in;
 		}
 		for(i=0; i < strlen(ign_list); i++)
 			if(in[i] == ign_list[i])
 			{
-				printf("<reached %c in the ign_list>\r\n", ign_list[i]);
+				/*printf("<reached %c in the ign_list>\r\n", ign_list[i]);*/
 				return in;
 			}
 		if(in[0] == /*(*/')'){
@@ -92,12 +126,26 @@ char* parse_expr(char* in, char* ign_list){
 			}
 			c = 0;
 			in++;
-			in = parse_expr(in, "+");
+			in = parse_expr(in, "+-");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop +");
 				exit(1);
 			}
 			addition();
+		}else if(in[0] == '-'){
+			unsigned long stp_saved = stp;
+			if(c == 0){
+				printf("bad prefixing number for binop -");
+				exit(1);
+			}
+			c = 0;
+			in++;
+			in = parse_expr(in, "+-");
+			if(stp != stp_saved +1){
+				printf("bad expression, stack pointer is incorrect for binop -");
+				exit(1);
+			}
+			subtraction();
 		}else if(in[0] == '*'){
 			unsigned long stp_saved = stp;
 			if(c == 0){
@@ -106,18 +154,32 @@ char* parse_expr(char* in, char* ign_list){
 			}
 			c = 0;
 			in++;
-			in = parse_expr(in, "+*");
+			in = parse_expr(in, "+-*/");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop +");
 				exit(1);
 			}
 			multiply();
+		}else if(in[0] == '/'){
+			unsigned long stp_saved = stp;
+			if(c == 0){
+				printf("bad prefixing number for binop /");
+				exit(1);
+			}
+			c = 0;
+			in++;
+			in = parse_expr(in, "+-*/");
+			if(stp != stp_saved +1){
+				printf("bad expression, stack pointer is incorrect for binop /");
+				exit(1);
+			}
+			divide();
 		}else if(isdigit(in[0])){
 			if(c){
 				printf("<ERROR> two numbers at once?\r\n");
 				exit(1);
 			}
-			printf("pushing number %c, or %u\r\n", in[0], in[0]-0x30);
+			printf("push %u;\r\n", in[0]-0x30);
 			c = in[0];
 			vstack[stp++] = c-0x30;
 			
@@ -127,7 +189,7 @@ char* parse_expr(char* in, char* ign_list){
 			unsigned long i = 1;
 			unsigned long lvl = 1;
 			in++; /*Skip over the starting parentheses*/
-			printf("Saw opening parentheses...\r\n");
+			/*printf("Saw opening parentheses...\r\n");*/
 			if(c){
 				printf("<ERROR> cannot follow digit with paren.\r\n");
 				exit(1);
@@ -144,10 +206,13 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			expr = str_null_terminated_alloc(in, i);
-			printf("Parsed Parenthesized expression is %s\r\n", expr);
+			/*printf("Parsed Parenthesized expression is %s\r\n", expr);*/
 			parse_expr(expr, "");
 			free(expr);
 			in += i+1;
+		} else {
+			printf("\r\n<ERROR> unrecognized token %c\r\n", in[0]);
+			exit(1);
 		}
 	}
 }
