@@ -1,3 +1,3 @@
-#!/usr/local/bin/tcc -run  -lm
+#!/usr/local/bin/tcc -run -b -lm
 
 #include "main.c"

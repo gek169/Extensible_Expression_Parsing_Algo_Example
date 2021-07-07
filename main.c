@@ -9,7 +9,7 @@ static char* read_until_terminator_alloced_modified(FILE* f){
 	unsigned long bcap = 40;
 	char* bufold;
 	unsigned long blen = 0;
-	buf = malloc(40);
+	buf = calloc(1,40);
 	if(!buf) return NULL;
 	while(1){
 		if(feof(f)){break;}
@@ -38,6 +38,7 @@ unsigned int M[0x10000] = {0};
 unsigned int vstack[1024] = {0};
 unsigned long stp = 0;
 char c = 0;
+char d = 0;
 
 char* parse_expr(char*, char*);
 void multiply()
@@ -51,7 +52,7 @@ void multiply()
 	a = vstack[--stp];
 	lc = a * b;
 	vstack[stp++] = lc;
-	printf("apop;bpop;mul;apush; [%u * %u = %u]\r\n", a,b,lc);
+	printf("alpop;blpop;mul;alpush; //[%u * %u = %u]\r\n", a,b,lc);
 }
 
 void assign()
@@ -65,19 +66,19 @@ void assign()
 	a = vstack[--stp];
 	M[a&0xffFF] = b;
 	vstack[stp++] = b;
-	printf("cpop;bpop;ildb;cpush; [M[%u] = %u]\r\n", a&0xffFF,b);
+	printf("cpop;blpop;illdb;cpush; //[M[%u] = %u]\r\n", a&0xffFF,b);
 }
 
 void deref(){
 	unsigned int a = 0, b = 0;
 	if(stp < 1){
-		printf("\r\n Error, not enough ops to assign.");
+		printf("\r\n Error, not enough ops to dereference.");
 		exit(1);
 	}
 	a = vstack[--stp];
 	b = M[a&0xffFF];
 	vstack[stp++] = b;
-	printf("cpop;ilda;apush; [M[%u], %u]\r\n", a&0xffFF,b);
+	printf("cpop;illda;alpush; //[M[%u], pushed %u]\r\n", a&0xffFF,b);
 }
 
 void divide()
@@ -95,9 +96,9 @@ void divide()
 		lc = 0;
 	vstack[stp++] = lc;
 	if(b != 0)
-		printf("apop;bpop;mul;apush; [%u / %u = %u]\r\n", a,b,lc);
+		printf("blpop;alpop;div;alpush; //[%u / %u = %u]\r\n", a,b,lc);
 	else
-		printf("apop;bpop;mul;apush; [%u / %u = %u, DIV_BY_ZERO]\r\n", a,b,lc);
+		printf("blpop;alpop;div;alpush; //[%u / %u = %u, DIV_BY_ZERO]\r\n", a,b,lc);
 }
 
 void addition()
@@ -111,7 +112,7 @@ void addition()
 	a = vstack[--stp];
 	lc = a + b;
 	vstack[stp++] = lc;
-	printf("apop;bpop;add;apush; [%u + %u = %u]\r\n", a,b,lc);
+	printf("apop;bpop;add;apush; //[%u + %u = %u]\r\n", a,b,lc);
 }
 
 void subtraction()
@@ -125,7 +126,7 @@ void subtraction()
 	a = vstack[--stp];
 	lc = a - b;
 	vstack[stp++] = lc;
-	printf("apop;bpop;sub;apush; [%u - %u = %u]\r\n", a,b,lc);
+	printf("blpop;alpop;sub;alpush; //[%u - %u = %u]\r\n", a,b,lc);
 }
 
 char* parse_expr(char* in, char* ign_list){
@@ -137,13 +138,14 @@ char* parse_expr(char* in, char* ign_list){
 			return in;
 		}
 		for(i=0; i < strlen(ign_list); i++)
-					if(in[0] == ign_list[i])
-					{
-						printf("<reached %c in the ign_list %s>\r\n", ign_list[i], ign_list);
-						return in;
-					}
+			if(in[0] == ign_list[i])
+			{
+				printf("<reached %c in the ign_list %s>\r\n", ign_list[i], ign_list);
+				return in;
+			}
 		if(in[0] == /*(*/')'){
 			printf("<ERROR> bad parentheses, saw extraneous ending parenthese");
+			printf("\r\nin: %s\r\n", in);
 			exit(1);
 		}else if(in[0] == '+'){
 			unsigned long stp_saved = stp;
@@ -152,11 +154,12 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			c = 0;
+			d = 0;
 			in++;
-			in = parse_expr(in, "+-");
+			in = parse_expr(in, "+-=");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop +");
-				printf("\r\nin: %s", in);
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			addition();
@@ -167,11 +170,12 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			c = 0;
+			d = 0;
 			in++;
-			in = parse_expr(in, "+-");
+			in = parse_expr(in, "+-=");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop -");
-				printf("\r\nin: %s", in);
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			subtraction();
@@ -182,11 +186,12 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			c = 0;
+			d = 0;
 			in++;
-			in = parse_expr(in, "+-*/");
+			in = parse_expr(in, "+-*/=");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop *");
-				printf("\r\nin: %s", in);
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			multiply();
@@ -197,46 +202,66 @@ char* parse_expr(char* in, char* ign_list){
 				exit(1);
 			}
 			c = 0;
+			d = 0;
 			in++;
-			in = parse_expr(in, "+-*/");
+			in = parse_expr(in, "+-*/=");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop /");
-				printf("\r\nin: %s", in);
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			divide();
 		}else if(in[0] == '='){
 			unsigned long stp_saved = stp;
-			if(c == 0){
-				printf("bad prefixing number for binop =");
+			if(d == 0){
+				printf("bad prefixing address for binop =");
 				exit(1);
 			}
-			c = 0;
+			d = 0;
 			in++;
 			in = parse_expr(in, "");
 			if(stp != stp_saved +1){
 				printf("bad expression, stack pointer is incorrect for binop =");
-				printf("\r\nin: %s", in);
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			assign();
 		}else if(isdigit(in[0])){
 			{
 				c = in[0];
+				d = 0;
 				vstack[stp++] = strtoul(in, &in, 0);
 				printf("push %u;\r\n", vstack[stp-1]);
 			}
+		}else if(in[0] == '&'){
+			unsigned long stp_stored = stp;
+			if(c){
+				printf("bad prefixing number for unary op &\r\n");
+				exit(1);
+			}
+			
+			in++;
+			in = parse_expr(in, "+-*/=");
+			printf("\r\n[as address.]\r\n");
+			if(stp != stp_stored+1){
+				printf("no number for unary op &?\r\n");
+				exit(1);
+			}
+			d = 1;
+			c = 0;
 		} else if(in[0] == '(' /*)*/) {
 			char* expr = NULL;
-			unsigned long i = 1;
+			unsigned long i = 0;
 			unsigned long lvl = 1;
 			in++; /*Skip over the starting parentheses*/
-			printf("Saw opening parentheses...\r\n");
-			if(c){
-				printf("<ERROR> cannot follow digit with paren.\r\n");
+			printf("Saw opening parentheses... past it is %s\r\n", in);
+			if(c || d){
+				printf("<ERROR> cannot follow that with paren.\r\n");
+				printf("in: %s\r\n", in);
 				exit(1);
 			}
 			for(;i<strlen(in);i++){
+				
 				if(in[i] == '('/*)*/) lvl++;
 				if(in[i] == /*(*/')') {
 					lvl--;
@@ -254,18 +279,19 @@ char* parse_expr(char* in, char* ign_list){
 			in += i+1;
 		} else if(in[0] == '[' /*]*/) {
 			char* expr = NULL;
-			unsigned long i = 1;
+			unsigned long i = 0;
 			unsigned long lvl = 1;
 			unsigned long stp_stored = stp;
 			in++; /*Skip over the starting parentheses*/
 			printf("Saw bracket...\r\n");
-			if(c){
-				printf("<ERROR> cannot follow digit with bracket.\r\n");
+			if(c || d){
+				printf("<ERROR> cannot follow that with bracket.\r\n");
+				printf("in: %s\r\n", in);
 				exit(1);
 			}
 			for(;i<strlen(in);i++){
 				if(in[i] == '['/*]*/) lvl++;
-				if(in[i] == /*[*/']') {
+				else if(in[i] == /*[*/']') {
 					lvl--;
 					if(lvl==0) break;
 				}
@@ -279,6 +305,7 @@ char* parse_expr(char* in, char* ign_list){
 			parse_expr(expr, "");
 			if(stp_stored + 1 != stp){
 				printf("\r\nCannot dereference! bad value.\r\n");
+				printf("\r\nin: %s\r\n", in);
 				exit(1);
 			}
 			deref();
@@ -293,10 +320,17 @@ char* parse_expr(char* in, char* ign_list){
 
 
 int main(){
-	while(1){
-		char* line;
-		char* line_old = read_until_terminator_alloced_modified(stdin);
+	char should_quit = 0;
+	while(!should_quit){
+		char* line = NULL;
+		char* line_old = NULL;
+		printf("\r\n> ");
+		line_old = read_until_terminator_alloced_modified(stdin);
 		line = line_old;
+		if(!line){
+			printf("<Bad line read>\r\n");
+			exit(1);
+		}
 		while(strfind(line, " ")!=-1){
 			line = str_repl_allocf(line, " ", "");
 		}
@@ -312,16 +346,26 @@ int main(){
 		while(strfind(line, "\r")!=-1){
 			line = str_repl_allocf(line, "\r", "");
 		}
+		line_old = line;
 		printf("Whitespace Removed:\r\n%s\r\n", line);
 		do{
 			long loc_semi = strfind(line, ";");
+			c = 0;
+			d = 0;
+			if(strprefix("quit",line)){
+				should_quit = 1;
+				goto end;
+			}
 			parse_expr(line,"");
 			printf("stp after expr = %lu\r\n", stp);
 			stp = 0;
-			if(loc_semi != -1)
-				line += loc_semi+1;
-			else break;
+			if(loc_semi != -1) line+=loc_semi+1;
+			else goto end;
 		} while(1);
-		free(line_old);
+		end:
+		if(line_old)
+			free(line_old);
+		line = NULL;
+		line_old = NULL;
 	}
 }
