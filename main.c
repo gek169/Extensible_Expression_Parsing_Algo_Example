@@ -293,30 +293,35 @@ char* parse_expr(char* in, char* ign_list){
 
 
 int main(){
-	char* line = read_until_terminator_alloced_modified(stdin);
-	while(strfind(line, " ")!=-1){
-		line = str_repl_allocf(line, " ", "");
+	while(1){
+		char* line;
+		char* line_old = read_until_terminator_alloced_modified(stdin);
+		line = line_old;
+		while(strfind(line, " ")!=-1){
+			line = str_repl_allocf(line, " ", "");
+		}
+		while(strfind(line, "\t")!=-1){
+			line = str_repl_allocf(line, "\t", "");
+		}
+		while(strfind(line, "\v")!=-1){
+			line = str_repl_allocf(line, "\v", "");
+		}
+		while(strfind(line, "\f")!=-1){
+			line = str_repl_allocf(line, "\f", "");
+		}
+		while(strfind(line, "\r")!=-1){
+			line = str_repl_allocf(line, "\r", "");
+		}
+		printf("Whitespace Removed:\r\n%s\r\n", line);
+		do{
+			long loc_semi = strfind(line, ";");
+			parse_expr(line,"");
+			printf("stp after expr = %lu\r\n", stp);
+			stp = 0;
+			if(loc_semi != -1)
+				line += loc_semi+1;
+			else break;
+		} while(1);
+		free(line_old);
 	}
-	while(strfind(line, "\t")!=-1){
-		line = str_repl_allocf(line, "\t", "");
-	}
-	while(strfind(line, "\v")!=-1){
-		line = str_repl_allocf(line, "\v", "");
-	}
-	while(strfind(line, "\f")!=-1){
-		line = str_repl_allocf(line, "\f", "");
-	}
-	while(strfind(line, "\r")!=-1){
-		line = str_repl_allocf(line, "\r", "");
-	}
-	printf("Whitespace Removed:\r\n%s\r\n", line);
-	do{
-		long loc_semi = strfind(line, ";");
-		parse_expr(line,"");
-		printf("stp after expr = %lu\r\n", stp);
-		stp = 0;
-		if(loc_semi != -1)
-			line += loc_semi+1;
-		else break;
-	} while(1);
 }
